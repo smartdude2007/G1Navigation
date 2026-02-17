@@ -5,6 +5,10 @@ from rclpy.node import Node
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
 
 
+class Coordinate():
+    def __init__(self, x=0.0, y=0.0):
+        self.x = x
+        self.y = y
 class Nav2Point(Node):
     def __init__(self):
         super().__init__('nav2point')
@@ -38,16 +42,16 @@ class Nav2Point(Node):
         c = 1.0 - 2.0 * (y * y + z * z)
         return math.degrees(math.atan2(s, c))
     
-    def main(self):
+    def loop(self):
         try:
             if (len(self.path) == 0):
                 self.get_logger().info("No path to follow")
                 return
             
             else:
-                while(self.have_pose):
+                while(self.idx < len(self.path)):
                     turned = False
-                    while(turned == False):
+                    while(turned == False and self.have_pose == True):
                         targetYaw = self.path[self.idx].yaw
                         yawError = 0
                         if (abs(targetYaw - self.yaw)>180):
@@ -71,7 +75,7 @@ class Nav2Point(Node):
 
                         self.get_logger().info("Turning, angular velocity: %.2f" % w)
 
-                    while(turned == True):
+                    while(turned == True and self.have_pose == True):
                         targetX = self.path[self.idx].x
                         targetY = self.path[self.idx].y
                         distance = math.hypot(targetX - self.x, targetY - self.y)
@@ -88,16 +92,30 @@ class Nav2Point(Node):
                         
                         v = min(self.max_v, self.vp * distance)
                         self.get_logger().info("Moving, linear velocity: %.2f" % v)
+                    if (self.have_pose == False):
+                        self.get_logger().warn("No pose information, cannot navigate")
+                        
         except Exception as e:
             self.get_logger().error("Error in main loop: %s" % str(e))
 
                         
 
-
+def main(args=None):
+    rclpy.init(args=args)
+    nav2point = Nav2Point()
+    try:
+        rclpy.spin(nav2point)
+        nav2point.loop()
+    except KeyboardInterrupt:
+        pass
+    finally:
+        nav2point.destroy_node()
+        rclpy.shutdown()
+        
     
 
+if __name__ == "__main__":
+    main()
 
-class Coordinate():
-    def __init__(self, x=0.0, y=0.0):
-        self.x = x
-        self.y = y
+
+
