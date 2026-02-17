@@ -20,12 +20,14 @@ class Nav2Point(Node):
         self.vp = 0.5
 
         self.odomSubscriber = self.create_subscription(Odometry_, '/odommodestate', self.odomHandler, 10)
-        self.path = [Coordinate(1.0, 1.0, 0.0)]
+        self.path = [Coordinate(1.0, 1.0)]
 
 
     def odomHandler(self, msg):
         self.x = msg.pose.pose.position.x
         self.y = msg.pose.pose.position.y
+        self.get_logger().info("Received odometry: x=%.2f, y=%.2f" % (self.x, self.y))
+
         self.yaw = self.quantToYaw(msg.pose.pose.orientation.x, msg.pose.pose.orientation.y,
                                     msg.pose.pose.orientation.z, msg.pose.pose.orientation.w)
         self.have_pose = True
@@ -86,6 +88,8 @@ class Nav2Point(Node):
                         
                         v = min(self.max_v, self.vp * distance)
                         self.get_logger().info("Moving, linear velocity: %.2f" % v)
+        except Exception as e:
+            self.get_logger().error("Error in main loop: %s" % str(e))
 
                         
 
@@ -94,6 +98,6 @@ class Nav2Point(Node):
 
 
 class Coordinate():
-    def __init__(self, x=0.0, y=0.0, yaw=0.0):
+    def __init__(self, x=0.0, y=0.0):
         self.x = x
         self.y = y
